@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME     = 'java-webapp'
         CONTAINER_NAME = 'webapp'
-        APP_PORT       = '8080'
+        APP_PORT       = '8090'
     }
 
     stages {

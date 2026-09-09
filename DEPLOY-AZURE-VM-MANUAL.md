@@ -31,8 +31,8 @@ In the VM page → **Networking** → **Add inbound port rule**. Add these:
 | Port | Purpose        |
 |------|----------------|
 | 22   | SSH (usually already open) |
-| 8080 | Tomcat / your app |
-| 8081 | Jenkins (we'll use this port to avoid clashing with Tomcat) |
+| 8080 | Jenkins |
+| 8090 | Tomcat / your app (kept off 8080 so it doesn't clash with Jenkins) |
 
 For each rule: Destination port ranges = the port, Protocol = TCP, Action = Allow.
 
@@ -63,9 +63,9 @@ Run these on the VM (Ubuntu).
 sudo apt update && sudo apt upgrade -y
 ```
 
-### Install Java 11
+### Install Java 17 (needed by Jenkins and fine for the build)
 ```bash
-sudo apt install -y openjdk-11-jdk
+sudo apt install -y fontconfig openjdk-17-jdk
 java -version
 ```
 
@@ -93,31 +93,24 @@ sudo usermod -aG docker azureuser
 ## Part 5 — Install Jenkins
 
 ```bash
-# Jenkins needs Java (already installed above)
-sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
-  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+# Java 17 is already installed in Part 4. Just make sure curl is present.
+sudo apt install -y curl
 
-echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] \
-  https://pkg.jenkins.io/debian-stable binary/" | \
-  sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+# Install the NEW 2026 signing key (official Jenkins instructions)
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+# Add the repo pointing at the new key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/" | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
 
 sudo apt update
 sudo apt install -y jenkins
 ```
 
-### Change Jenkins port to 8081 (so Tomcat can keep 8080)
-```bash
-sudo sed -i 's/HTTP_PORT=8080/HTTP_PORT=8081/' /etc/default/jenkins 2>/dev/null || true
-
-# On newer Jenkins (systemd override):
-sudo mkdir -p /etc/systemd/system/jenkins.service.d
-echo -e "[Service]\nEnvironment=\"JENKINS_PORT=8081\"" | \
-  sudo tee /etc/systemd/system/jenkins.service.d/override.conf
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now jenkins
-sudo systemctl restart jenkins
-```
+### Jenkins port
+Jenkins already runs on port 8080 by default. Nothing to do here — skip this step.
 
 ### Let Jenkins run Docker
 ```bash
@@ -126,7 +119,7 @@ sudo systemctl restart jenkins
 ```
 
 ### Unlock Jenkins
-Open in browser: `http://<VM_PUBLIC_IP>:8081`
+Open in browser: `http://<VM_PUBLIC_IP>:8080`
 
 Get the initial admin password:
 ```bash
@@ -150,13 +143,13 @@ cd app
 # build the image (uses your existing Dockerfile)
 docker build -t java-webapp .
 
-# run it, mapping container 8080 -> VM 8080
-docker run -d --name webapp -p 8080:8080 java-webapp
+# run it, mapping container 8080 -> VM 8090 (Jenkins owns 8080)
+docker run -d --name webapp -p 8090:8080 java-webapp
 ```
 
-Open in browser: `http://<VM_PUBLIC_IP>:8080/webapp`
+Open in browser: `http://<VM_PUBLIC_IP>:8090/webapp`
 
-Tomcat manager (from your Dockerfile) is at `http://<VM_PUBLIC_IP>:8080/manager` (user `admin` / pass `admin`).
+Tomcat manager (from your Dockerfile) is at `http://<VM_PUBLIC_IP>:8090/manager` (user `admin` / pass `admin`).
 
 > Change the manager password before any real/public use — the Dockerfile ships default credentials.
 
@@ -173,8 +166,8 @@ Tomcat manager (from your Dockerfile) is at `http://<VM_PUBLIC_IP>:8080/manager`
 
 | Thing            | URL / command |
 |------------------|---------------|
-| App              | `http://<VM_PUBLIC_IP>:8080/webapp` |
-| Tomcat manager   | `http://<VM_PUBLIC_IP>:8080/manager` |
-| Jenkins          | `http://<VM_PUBLIC_IP>:8081` |
+| App              | `http://<VM_PUBLIC_IP>:8090/webapp` |
+| Tomcat manager   | `http://<VM_PUBLIC_IP>:8090/manager` |
+| Jenkins          | `http://<VM_PUBLIC_IP>:8080` |
 | View app logs    | `docker logs -f webapp` |
-| Rebuild & redeploy | `docker rm -f webapp && docker build -t java-webapp . && docker run -d --name webapp -p 8080:8080 java-webapp` |
+| Rebuild & redeploy | `docker rm -f webapp && docker build -t java-webapp . && docker run -d --name webapp -p 8090:8080 java-webapp` |

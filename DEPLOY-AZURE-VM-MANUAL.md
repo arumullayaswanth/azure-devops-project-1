@@ -148,9 +148,19 @@ Tomcat manager: `http://<VM_PUBLIC_IP>:8090/manager` (user `admin` / pass `admin
 
 ### Option B — Deploy via Jenkins pipeline
 
+The `Jenkinsfile` builds the WAR **inside** the Docker image, so the pipeline does
+not need Maven on the VM.
+
 1. In Jenkins → **New Item** → name it `java-app` → **Pipeline** → OK.
-2. Under **Pipeline**, choose "Pipeline script" and paste the contents of `Jenkinsfile` from the repo.
+2. Scroll to **Pipeline** section:
+   - **Definition**: `Pipeline script from SCM`
+   - **SCM**: `Git`
+   - **Repository URL**: `https://github.com/arumullayaswanth/azure-devops-project-1.git`
+   - **Branch Specifier**: `*/master`
+   - **Script Path**: `Jenkinsfile`
 3. Save → **Build Now**.
+
+After the build succeeds, open the app at `http://<VM_PUBLIC_IP>:8090/webapp`.
 
 ---
 

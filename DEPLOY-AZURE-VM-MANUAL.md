@@ -142,9 +142,12 @@ docker build -t java-webapp .
 docker run -d --name webapp -p 8090:8080 java-webapp
 ```
 
-Open in browser: `http://<VM_PUBLIC_IP>:8090/webapp`
+Open the app in browser: `http://<VM_PUBLIC_IP>:8090/webapp`
 
-Tomcat manager: `http://<VM_PUBLIC_IP>:8090/manager` (user `admin` / pass `admin`).
+Tomcat manager: `http://<VM_PUBLIC_IP>:8090/manager`
+When the sign-in popup appears, enter:
+- **Username:** `admin`
+- **Password:** `admin`
 
 ### Option B — Deploy via Jenkins pipeline
 
@@ -170,6 +173,6 @@ After the build succeeds, open the app at `http://<VM_PUBLIC_IP>:8090/webapp`.
 |-------|---------------|
 | Jenkins        | `http://<VM_PUBLIC_IP>:8080` |
 | App            | `http://<VM_PUBLIC_IP>:8090/webapp` |
-| Tomcat manager | `http://<VM_PUBLIC_IP>:8090/manager` |
+| Tomcat manager | `http://<VM_PUBLIC_IP>:8090/manager` (user `admin` / pass `admin`) |
 | App logs       | `docker logs -f webapp` |
 | Rebuild & redeploy | `docker rm -f webapp && docker build -t java-webapp . && docker run -d --name webapp -p 8090:8080 java-webapp` |
